@@ -1,11 +1,11 @@
 export const AudioOrchestrator = {
   ctx: null as AudioContext | null,
   
-  introAudio: new Audio('/AUDIO.mp3'),
+  introAudio: Object.assign(new Audio('/AUDIO.mp3'), { crossOrigin: "anonymous" }),
   introAnalyser: null as AnalyserNode | null,
   introData: new Uint8Array(0),
   
-  robotAudio: new Audio('/robot_voice.wav'),
+  robotAudio: Object.assign(new Audio('/robot_voice.wav'), { crossOrigin: "anonymous" }),
   robotAnalyser: null as AnalyserNode | null,
   robotData: new Uint8Array(0),
   
@@ -80,8 +80,16 @@ export const AudioOrchestrator = {
     if (!this.initialized) this.init();
     if (this.ctx?.state === 'suspended') this.ctx.resume();
     
-    this.robotAudio.pause();
-    this.robotAudio.currentTime = 0;
+    // Prime the robot voice audio element during this user interaction
+    // to prevent autoplay block later in the sequence.
+    this.robotAudio.volume = 0;
+    this.robotAudio.play().then(() => {
+      this.robotAudio.pause();
+      this.robotAudio.currentTime = 0;
+      this.robotAudio.volume = 1;
+    }).catch(e => console.warn("Robot voice prime blocked", e));
+    
+    this.introAudio.pause();
     this.introAudio.currentTime = 0;
     this.introAudio.muted = this.muted;
     this.introAudio.play().catch(e => console.warn("Intro play blocked", e));
